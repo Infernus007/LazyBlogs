@@ -14,6 +14,9 @@ const serviceAccount = {
   client_x509_cert_url: import.meta.env.FIREBASE_CLIENT_CERT_URL,
 };
 
-export const app = initializeApp({
-  credential: cert(serviceAccount as ServiceAccount),
-});
+export const app = initializeApp(
+  {
+    credential: cert(serviceAccount as ServiceAccount),
+  },
+  "server"
+);

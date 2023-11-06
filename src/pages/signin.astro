@@ -1,0 +1,149 @@
+---
+import BaseHead from "../components/BaseHead.astro";
+import Header from "../components/Nav.astro";
+import Footer from "../components/Footer/Footer.astro";
+import { SITE_TITLE, SITE_DESCRIPTION } from "../consts";
+import { app } from "../firebase/server";
+import { getAuth } from "firebase-admin/auth";
+
+/* Check if the user is authenticated */
+const auth = getAuth(app);
+const sessionCookie = Astro.cookies.get("session").value;
+if (sessionCookie) {
+  const decodedCookie = await auth.verifySessionCookie(sessionCookie);
+  if (decodedCookie) {
+    return Astro.redirect("/dashboard");
+  }
+}
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+  </head>
+  <body class="w-96 mx-auto">
+    <Header title={SITE_TITLE} />
+    <h1 class="text-3xl font-semibold mb-4">Register</h1>
+    <p>
+      Already have an account? <a href="/signin" class="text-blue-500"
+        >Sign in</a
+      >
+    </p>
+
+    <h1 class="text-3xl font-semibold mt-8">Sign in</h1>
+    <p>
+      New here? <a href="/register" class="text-blue-500">Create an account</a>
+    </p>
+
+    <form
+      action="/api/auth/sign.ts"
+      class="border border-red-500 shadow rounded p-5 mt-8"
+      method="post"
+    >
+      <div class="relative z-0 mb-6 group">
+        <input
+          type="email"
+          name="email"
+          id="email"
+          class="block w-full text-sm text-gray-900 bg-transparent border-b-2 border-gray-300 focus:outline-none focus:border-blue-600 dark:text-white dark:border-gray-600 dark:focus:border-blue-500"
+          placeholder="Email address"
+          required
+        />
+        <label
+          for="email"
+          class="absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] left-0 text-blue-600 dark:text-blue-500"
+          >Email address</label
+        >
+      </div>
+      <div class="relative z-0 mb-6 group">
+        <input
+          type="password"
+          name="password"
+          id="password"
+          class="block w-full text-sm text-gray-900 bg-transparent border-b-2 border-gray-300 focus:outline-none focus:border-blue-600 dark:text-white dark:border-gray-600 dark:focus:border-blue-500"
+          placeholder="Password"
+          required
+        />
+        <label
+          for="password"
+          class="absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] left-0 dark:text-blue-500"
+          >Password</label
+        >
+      </div>
+      <button
+        type="submit"
+        class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+        >Login</button
+      >
+    </form>
+
+    <button
+      id="google"
+      class="mt-4 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded"
+      >Sign in with Google</button
+    >
+
+    <Footer />
+    <script>
+      import {
+        getAuth,
+        inMemoryPersistence,
+        signInWithEmailAndPassword,
+        GoogleAuthProvider,
+        signInWithPopup,
+      } from "firebase/auth";
+      import { app } from "../firebase/client";
+
+      const auth = getAuth(app);
+      // This will prevent the browser from storing session data
+      auth.setPersistence(inMemoryPersistence);
+
+      const form = document.querySelector("form") as HTMLFormElement;
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        const email = formData.get("email")?.toString();
+        const password = formData.get("password")?.toString();
+
+        if (!email || !password) {
+          return;
+        }
+        const userCredential = await signInWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+        const idToken = await userCredential.user.getIdToken();
+        const response = await fetch("/api/auth/sign", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        });
+
+        if (response.redirected) {
+          window.location.assign(response.url);
+        }
+      });
+
+      const googleSignin = document.querySelector(
+        "#google"
+      ) as HTMLButtonElement;
+      googleSignin.addEventListener("click", async () => {
+        const provider = new GoogleAuthProvider();
+        const userCredential = await signInWithPopup(auth, provider);
+        const idToken = await userCredential.user.getIdToken();
+        const res = await fetch("/api/auth/sign", {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+        });
+
+        if (res.redirected) {
+          window.location.assign(res.url);
+        }
+      });
+    </script>
+  </body>
+</html>

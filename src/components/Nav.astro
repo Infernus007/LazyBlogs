@@ -1,0 +1,53 @@
+---
+import { app } from "../firebase/server";
+import { UserRecord, getAuth } from "firebase-admin/auth";
+import HeaderLink from "./HeaderLink.astro";
+const auth = getAuth(app);
+
+/* Check current session */
+let user: UserRecord | null = null;
+const sessionCookie = Astro.cookies.get("session").value;
+if (sessionCookie) {
+  const decodedCookie = await auth.verifySessionCookie(sessionCookie);
+  user = await auth.getUser(decodedCookie.uid);
+}
+---
+
+<nav>
+  <div
+    class="max-w-5xl mx-auto px-3 py-3 flex items-center justify-between h-16"
+  >
+    <HeaderLink href="/">Jash Naik</HeaderLink>
+    <HeaderLink href="/blog">Blog</HeaderLink>
+    <HeaderLink href="/about">About</HeaderLink>
+    {
+      sessionCookie && user ? (
+      // If user is logged in, show their display name
+        <HeaderLink href="#">{user.displayName}</HeaderLink>
+      ) : (
+        // If user is not logged in, show sign in and login options
+        <>
+          <HeaderLink href="/signin">Sign In</HeaderLink>
+          <HeaderLink href="/register">Register</HeaderLink>
+        </>
+      )
+    }
+
+    <a href="/search" class="">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="h-6 w-6"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+      </svg>
+    </a>
+  </div>
+  <div class="w-full border-b-2 border-black squiggle"></div>
+</nav>

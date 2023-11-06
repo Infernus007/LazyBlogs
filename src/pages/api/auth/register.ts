@@ -25,5 +25,5 @@ export const post: APIRoute = async ({ request, redirect }) => {
   } catch (error: any) {
     return new Response("Something went wrong", { status: 400 });
   }
-  return redirect("/signin");
+  return redirect("/sign");
 };
